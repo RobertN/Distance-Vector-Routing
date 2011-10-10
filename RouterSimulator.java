@@ -17,9 +17,9 @@ public class RouterSimulator {
   public static final int NUM_NODES = 4;
   public static final int INFINITY = 999;
 
-  public static final boolean LINKCHANGES = false;
+  public static final boolean LINKCHANGES = true;
 
-  public int TRACE = 1;             /* for debugging */
+  public int TRACE = 3;             /* for debugging */
 
   private GuiTextArea myGUI = null;
 
@@ -132,9 +132,9 @@ public class RouterSimulator {
     while (true) {
 
       eventptr = evlist;            /* get next event to simulate */
-      System.out.println("Simulating event");
-      if (eventptr==null)
+      if (eventptr==null) {
         break;
+      }
       evlist = evlist.next;        /* remove this event from event list */
       if (evlist!=null)
         evlist.prev=null;
