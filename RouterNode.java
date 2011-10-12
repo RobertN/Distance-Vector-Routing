@@ -14,14 +14,17 @@ public class RouterNode {
         this.sim = sim;
         myGUI =new GuiTextArea("  Output window for Router #"+ ID + "  ");
 
+        System.arraycopy(costs, 0, this.costs, 0, RouterSimulator.NUM_NODES);
+
         for(int i = 0; i < RouterSimulator.NUM_NODES; i++) {
           routes[i] = i; 
           for(int j = 0; j < RouterSimulator.NUM_NODES; j++) {
-            neighbourVectors[i][j] = RouterSimulator.INFINITY;
+            if(i == myID)
+                neighbourVectors[i][j] = costs[j];
+            else
+                neighbourVectors[i][j] = RouterSimulator.INFINITY;
           }
         }
-
-        System.arraycopy(costs, 0, this.costs, 0, RouterSimulator.NUM_NODES);
 
         sendVectors();
     }
@@ -41,13 +44,20 @@ public class RouterNode {
 
     //--------------------------------------------------
     private boolean recalculateCost() {
-        System.out.println("Recalculating costs");  
+        System.out.println("Recalculating costs for: ");  
 
+        int cost = 0;  
         boolean dirty = false;
         for(int i = 0; i < RouterSimulator.NUM_NODES; i++) {
             for(int dest = 0; dest < RouterSimulator.NUM_NODES; dest++) {
-                int cost = neighbourVectors[i][dest] + neighbourVectors[myID][dest];
+                cost = neighbourVectors[i][dest];
+                if(i != myID) 
+                    cost += neighbourVectors[myID][i];
+
                 if(cost < costs[dest]) {
+                    if(i == 0)
+                        System.out.println("-----\\o\\/o/---Updating cost for: " + i + " = " + cost);
+
                     costs[dest] = cost; 
                     routes[dest] = i;
                     dirty = true;
@@ -60,8 +70,15 @@ public class RouterNode {
 
     //--------------------------------------------------
     public void recvUpdate(RouterPacket pkt) {
-        System.out.println("recvUpdate");
-        neighbourVectors[pkt.sourceid] = pkt.mincost;
+        System.out.println("recvUpdate: ");
+
+        System.arraycopy(pkt.mincost, 0, neighbourVectors[pkt.sourceid], 0, RouterSimulator.NUM_NODES);
+
+        /*
+        for(int i = 0; i < RouterSimulator.NUM_NODES; i++)
+            System.out.print(pkt.mincost[i] + " ");
+        System.out.println();
+        */
 
         boolean dirty = recalculateCost();
         if(dirty) {
