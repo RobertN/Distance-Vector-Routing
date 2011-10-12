@@ -7,6 +7,7 @@ public class RouterNode {
     private int[] costs = new int[RouterSimulator.NUM_NODES];
     private int[] routes = new int[RouterSimulator.NUM_NODES];
     private int[][] neighbourVectors = new int[RouterSimulator.NUM_NODES][RouterSimulator.NUM_NODES];
+    private boolean usePoisonedReverse = true; 
 
     //--------------------------------------------------
     public RouterNode(int ID, RouterSimulator sim, int[] costs) {
@@ -34,7 +35,17 @@ public class RouterNode {
         for(int i = 0; i < RouterSimulator.NUM_NODES; i++) {
             if(i != myID) {
                 if(costs[i] != RouterSimulator.INFINITY) {
-                    RouterPacket pkt = new RouterPacket(myID, i, costs);
+                    int[] c = new int[RouterSimulator.NUM_NODES];
+                    System.arraycopy(costs, 0, c, 0, RouterSimulator.NUM_NODES);
+                    if(usePoisonedReverse) {
+                        // check if we are using the active node in some route
+                        for(int r = 0; r < RouterSimulator.NUM_NODES; r++) {
+                            if(routes[r] == i) {
+                                c[r] = RouterSimulator.INFINITY;
+                            }
+                        }
+                    }
+                    RouterPacket pkt = new RouterPacket(myID, i, c);
                     sendUpdate(pkt);
                 }
             }
@@ -44,8 +55,6 @@ public class RouterNode {
 
     //--------------------------------------------------
     private boolean recalculateCost() {
-        System.out.println("Recalculating costs for: ");  
-
         int cost = 0;  
         boolean dirty = false;
         for(int i = 0; i < RouterSimulator.NUM_NODES; i++) {
@@ -55,9 +64,6 @@ public class RouterNode {
                     cost += neighbourVectors[myID][i];
 
                 if(cost < costs[dest]) {
-                    if(i == 0)
-                        System.out.println("-----\\o\\/o/---Updating cost for: " + i + " = " + cost);
-
                     costs[dest] = cost; 
                     routes[dest] = i;
                     dirty = true;
@@ -70,15 +76,7 @@ public class RouterNode {
 
     //--------------------------------------------------
     public void recvUpdate(RouterPacket pkt) {
-        System.out.println("recvUpdate: ");
-
         System.arraycopy(pkt.mincost, 0, neighbourVectors[pkt.sourceid], 0, RouterSimulator.NUM_NODES);
-
-        /*
-        for(int i = 0; i < RouterSimulator.NUM_NODES; i++)
-            System.out.print(pkt.mincost[i] + " ");
-        System.out.println();
-        */
 
         boolean dirty = recalculateCost();
         if(dirty) {
@@ -90,13 +88,11 @@ public class RouterNode {
     //--------------------------------------------------
     private void sendUpdate(RouterPacket pkt) {
         sim.toLayer2(pkt);
-        System.out.println("sendUpdate");
     }
 
 
     //--------------------------------------------------
     public void printDistanceTable() {
-        System.out.println("printDistanceTable");
         myGUI.print("Current state for router " + myID + " at time " + sim.getClocktime() + " \n\n");
 
         myGUI.print("Distancetable: \n");
